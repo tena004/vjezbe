@@ -9,5 +9,8 @@ cur.execute('''CREATE TABLE IF NOT EXISTS user
                email text NOT NULL,
                password text NOT NULL,
                contact text NOT NULL,
-               created_at text NOT NULL)''')
+               created_at text)''')
+
+con.commit()
+con.close()
 
