@@ -11,6 +11,8 @@ cur.execute('''CREATE TABLE IF NOT EXISTS user
                contact text NOT NULL,
                created_at text)''')
 
+cur.execute('''ALTER TABLE user ADD COLUMN count_login integer default 0''')
+
 con.commit()
 con.close()
 
