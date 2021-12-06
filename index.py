@@ -1,7 +1,7 @@
 import sqlite3
 import hashlib
 from datetime import date
-import time
+import time as time
 
 def register_user(name, email, password, contact):
     today = date.today()
@@ -58,20 +58,13 @@ def provjera_email(email):
         con.commit()
         con.close()
     
-    
 
-
-def format_seconds_to_hhmmss(seconds):
-    sec_value = seconds % (24 * 3600)
-    hour_value = sec_value // 3600
-    sec_value %= 3600
-    min_value = sec_value // 60
-    sec_value %= 60
-    return "%02i:%02i:%02i" % (hour_value, min_value, sec_value)
 
 def generiraj_hash(email):
     ts = int(time.time())
     sekunde = ts + 1800
+    sekunde_pom = time.localtime(sekunde)
+    time_plus_30 = time.strftime("%H:%M:%S", sekunde_pom)
     hash_ts = hashlib.sha256(str(ts).encode('utf-8')).hexdigest()
     
     con = sqlite3.connect('baza.db')
@@ -82,8 +75,7 @@ def generiraj_hash(email):
     
     user_id = tupleUser[0]
     today = date.today()
-    time_plus30 = format_seconds_to_hhmmss(sekunde)
-    valid_until = str(today) + ' ' + time_plus30
+    valid_until = str(today) + ' ' + str(time_plus_30)
     
     cur2 = con.cursor()
     query2 = cur2.execute('INSERT INTO forgot_password (user_id, hash, valid_until) VALUES (?, ?, ?)', (user_id, hash_ts, valid_until))
@@ -92,16 +84,53 @@ def generiraj_hash(email):
 
     con.commit()
     con.close()
+
+def resetiraj_pwd(email):
+    con = sqlite3.connect('baza.db')
+    cur = con.cursor()
+    query = cur.execute('SELECT id FROM user WHERE email = ?', (email,))
+    tupleUser = query.fetchone()
+
+    if tupleUser != None:
+        hash_kod = input('Unesite hash kod za promijenu lozinke: ')
+        user_id = tupleUser[0]
+        cur2 = con.cursor()
+        query2 = cur2.execute('SELECT hash FROM forgot_password WHERE user_id = ?', (user_id,))
+        tupleHash = query2.fetchone()
+        hash_reset =  tupleHash[0]
+        if hash_reset == hash_kod:
+            nova_pwd = input('Unesi novu lozinku: ')
+            potvrdi_pwd = input('Ponovno unesi novu lozinku: ')
+            while nova_pwd != potvrdi_pwd:
+                print('Lozinke se ne podudaraju! Probajte ponovo.')
+                nova_pwd = input('Unesi novu lozinku: ')
+                potvrdi_pwd = input('Ponovno unesi novu lozinku: ')
+            cur2 = con.cursor()
+            update = cur2.execute('UPDATE user SET password = ? WHERE id = ?', (hash_pwd(nova_pwd), user_id))
+            print('Lozinka uspješno promijenjena!')
+            cur3 = con.cursor()
+            delete = cur3.execute('DELETE FROM forgot_password WHERE user_id = ?', (user_id,))
+            con.commit()
+            con.close()
+        else:
+            print('Nije moguće promijeniti lozinku!')
+            con.commit()
+            con.close()
+                
+    else:
+        print('Korisnik s unesenim e-mailom ne postoji!')
+        con.commit()
+        con.close()
     
     
     
     
 
 print('Dobrodošli u Unidu sustav!')
-print('Za prijavu upišite broj 1, za registraciju broj 2, za zaboravljenu lozinku broj 3:')
+print('Za prijavu upišite broj 1, za registraciju broj 2,\n za zaboravljenu lozinku broj 3, za promijenu lozinke broj 4: ')
 odabir = int(input('Unesite broj: '))
 
-while odabir != 1 and odabir != 2 and odabir != 3:
+while odabir != 1 and odabir != 2 and odabir != 3 and odabir != 4:
     odabir = int(input('Unesite broj: '))
 
 
@@ -119,7 +148,7 @@ elif odabir == 2:
     contact = input('Unesite kontakt broj: ')
     register_user(name, email, hash_pwd(pwd), contact)
 
-else:
+elif odabir == 3:
     print('Zaboravljena lozinka!')
     email = input('Unesite e-mail: ')
     provjera = provjera_email(email)
@@ -127,6 +156,11 @@ else:
         generiraj_hash(email)
     else:
         print('Korisnik s tim e-mailom ne postoji!')
+
+else:
+    print('Resetiraj lozinku!')
+    email = input('Unesite e-mail: ')
+    resetiraj_pwd(email)
     
 
 
